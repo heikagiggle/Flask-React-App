@@ -2,6 +2,7 @@
 from flask import request, jsonify
 from config import app, db
 from models import Contact
+import os
 
 @app.route('/contacts', methods=['GET'])
 def get_contacts():
@@ -55,7 +56,15 @@ def delete_contact(user_id):
 
     return jsonify({"message": "User deleted successfully"}), 200
 
+# if __name__ == '__main__':
+#     with app.app_context():
+#         db.create_all()
+#     app.run(debug=True)
+
+with app.app_context():
+    db.create_all()
+
+# 2. This only executes when running locally on your machine (python main.py)
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
