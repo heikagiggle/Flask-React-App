@@ -1,69 +1,94 @@
 import { useState } from "react";
+import Spinner from "./Spinner";
+import { API_BASE } from "./App";
 
-const ContactForm = ({ existingContact = {}, updateCallback }) => {
-    const [firstName, setFirstName] = useState(existingContact.firstName || "");
-    const [lastName, setLastName] = useState(existingContact.lastName || "");
-    const [email, setEmail] = useState(existingContact.email || "");
 
-    const updating = Object.entries(existingContact).length !== 0
+const withMinDelay = (promise, ms) =>
+  Promise.all([promise, new Promise((resolve) => setTimeout(resolve, ms))]).then(
+    ([result]) => result
+  );
 
-    const onSubmit = async (e) => {
-        e.preventDefault()
+const ContactForm = ({ existingContact = {}, updateCallback, onCancel }) => {
+  const [firstName, setFirstName] = useState(existingContact.firstName || "");
+  const [lastName, setLastName] = useState(existingContact.lastName || "");
+  const [email, setEmail] = useState(existingContact.email || "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-        const data = {
-            firstName,
-            lastName,
-            email
-        }
-        const url = "http://127.0.0.1:5000/" + (updating ? `update_contact/${existingContact.id}` : "create_contact")
-        const options = {
-            method: updating ? "PATCH" : "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(data)
-        }
-        const response = await fetch(url, options)
-        if (response.status !== 201 && response.status !== 200) {
-            const data = await response.json()
-            alert(data.message)
-        } else {
-            updateCallback()
-        }
+  const updating = Object.entries(existingContact).length !== 0;
+
+  const onSubmit = async (e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
+    const data = { firstName, lastName, email };
+    const url = `${API_BASE}/` + (updating ? `update_contact/${existingContact.id}` : "create_contact");
+    const options = {
+      method: updating ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    };
+
+    try {
+      const response = await withMinDelay(fetch(url, options), 600);
+      if (response.status !== 201 && response.status !== 200) {
+        const body = await response.json();
+        alert(body.message);
+        setIsSubmitting(false);
+      } else {
+        updateCallback();
+      }
+    } catch (error) {
+      alert("Something went wrong. Please try again.");
+      setIsSubmitting(false);
     }
+  };
 
-    return (
-        <form onSubmit={onSubmit}>
-            <div>
-                <label htmlFor="firstName">First Name:</label>
-                <input
-                    type="text"
-                    id="firstName"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                />
-            </div>
-            <div>
-                <label htmlFor="lastName">Last Name:</label>
-                <input
-                    type="text"
-                    id="lastName"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                />
-            </div>
-            <div>
-                <label htmlFor="email">Email:</label>
-                <input
-                    type="text"
-                    id="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                />
-            </div>
-            <button type="submit">{updating ? "Update" : "Create"}</button>
-        </form>
-    );
+  return (
+    <form onSubmit={onSubmit}>
+      <div className="field">
+        <label htmlFor="firstName">First name</label>
+        <input
+          type="text"
+          id="firstName"
+          placeholder="Ada"
+          value={firstName}
+          disabled={isSubmitting}
+          onChange={(e) => setFirstName(e.target.value)}
+        />
+      </div>
+      <div className="field">
+        <label htmlFor="lastName">Last name</label>
+        <input
+          type="text"
+          id="lastName"
+          placeholder="Lovelace"
+          value={lastName}
+          disabled={isSubmitting}
+          onChange={(e) => setLastName(e.target.value)}
+        />
+      </div>
+      <div className="field">
+        <label htmlFor="email">Email</label>
+        <input
+          type="text"
+          id="email"
+          placeholder="ada@example.com"
+          value={email}
+          disabled={isSubmitting}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+      </div>
+      <div className="form-actions">
+        <button type="button" className="btn btn-ghost" onClick={onCancel} disabled={isSubmitting}>
+          Cancel
+        </button>
+        <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+          {isSubmitting ? <Spinner size="sm" /> : updating ? "Save changes" : "Create contact"}
+        </button>
+      </div>
+    </form>
+  );
 };
 
-export default ContactForm
+export default ContactForm;
