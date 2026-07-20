@@ -1,5 +1,6 @@
 .vscode
-backend/venv/
-backend/__pycache__/
-backend/*.pyc
-backend/instance/
+# Backend
+**/venv/
+**/__pycache__/
+**/*.pyc
+**/instance/mydatabase.db
